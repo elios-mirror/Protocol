@@ -61,8 +61,11 @@ void Communication::send(const std::string &message) {
     init_client_socket();
   }
 
+  printf("test %s\n", _socket_path.c_str());
+
+
   int rc = 0;
-  int sended = 0;
+  std::size_t sended = 0;
   protocol_t header;
   header.payload_size = message.size();
   header.command_type = 0;

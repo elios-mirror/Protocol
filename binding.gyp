@@ -1,10 +1,10 @@
 {
   "targets": [
     {
-      "target_name": "addon",
+      "target_name": "elios_protocol",
       "cflags!": [ "-fno-exceptions" ],
       "cflags_cc!": [ "-fno-exceptions" ],
-      "sources": [ "addon.cc", "Communication.cpp" ],
+      "sources": [ "src/main.cpp", "src/Communication.cpp" ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")"
       ],
