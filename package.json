@@ -1,11 +1,14 @@
 {
   "name": "elios-protocol",
-  "version": "0.0.2",
+  "version": "0.0.6",
   "description": "Node.js & C++ Elios Protocol",
   "main": "index.js",
   "gypfile": true,
   "dependencies": {
     "bindings": "~1.2.1",
     "node-addon-api": "^1.0.0"
+  },
+  "scripts": {
+    "prepublish": "npm build ."
   }
 }
