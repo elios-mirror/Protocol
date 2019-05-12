@@ -8,7 +8,6 @@ stages:
   - test
 
 before_script:
-  - rm -R ~/.node-gyp
   - npm install -g node-gyp
   - npm install
   - node-gyp configure
