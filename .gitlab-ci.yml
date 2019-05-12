@@ -17,4 +17,6 @@ test_sockets:
   script:
    - node-gyp build .
    - ls -R build
+   - cd build; make
+   - ls -R build
    - npm test
