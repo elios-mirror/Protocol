@@ -18,4 +18,5 @@ test_sockets:
   stage: test
   script:
    - node-gyp build .
+   - npm build .
    - npm test
