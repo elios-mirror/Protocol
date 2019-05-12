@@ -10,11 +10,11 @@ stages:
 
 before_script:
   - npm install -g node-gyp
+  - npm install
   - node-gyp configure
 
 test_sockets:
   stage: test
   script:
-   - npm install
    - node-gyp build .
    - npm test
