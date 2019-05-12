@@ -4,3 +4,4 @@ node_modules
 *-lock.json
 .ccls-cache
 .vscode
+coverage

@@ -5,6 +5,7 @@ Communication::Communication(const std::string &socket_path)
   _socket_path = socket_path;
   _server_socket_fd = -1;
   _client_socket_fd = -1;
+  _close = false;
 
   memset(&_socket_addr, 0, sizeof(_socket_addr));
   _socket_addr.sun_family = AF_UNIX;
@@ -23,6 +24,12 @@ Communication::Communication(const std::string &socket_path)
 
 Communication::~Communication()
 {
+  quit();
+}
+
+void Communication::quit()
+{
+  _close = true;
   if (_server_socket_fd != -1)
     unlink(_socket_path.c_str());
 }
@@ -94,7 +101,8 @@ void Communication::send(const std::string &message, int command_type)
     }
     sended += rc;
   }
-  if (sended != header.payload_size){
+  if (sended != header.payload_size)
+  {
     perror("Message not send correcly !");
   }
 }
@@ -105,6 +113,7 @@ void Communication::receive(
 {
   int cl, rc;
   size_t readed;
+  struct timeval tv = {1, 0};
   char *buffer;
   protocol_t header;
   if (_server_socket_fd == -1)
@@ -112,13 +121,16 @@ void Communication::receive(
     init_server_socket();
   }
 
-  while (1)
+  while (!_close)
   {
     if ((cl = accept(_server_socket_fd, NULL, NULL)) == -1)
     {
       perror("accept error");
       continue;
     }
+
+    if (select(_server_socket_fd, NULL, NULL, NULL, &tv) < 0)
+      perror("select");
 
     readed = 0;
     rc = 0;

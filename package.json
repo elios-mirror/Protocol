@@ -9,6 +9,10 @@
     "node-addon-api": "^1.0.0"
   },
   "scripts": {
+    "test": "jest --coverage",
     "prepublish": "npm build ."
+  },
+  "devDependencies": {
+    "jest": "^24.8.0"
   }
 }

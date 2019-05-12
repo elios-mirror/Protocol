@@ -21,6 +21,7 @@ public:
   ~Communication();
   void send(const std::string &, int command_type);
   void receive(const std::function<void(const protocol_t &, const std::string &)> &);
+  void quit();
 
 private:
   void init_client_socket();
@@ -31,4 +32,5 @@ private:
   int _client_socket_fd;
   int _server_socket_fd;
   std::string _socket_path;
+  bool _close;
 };
