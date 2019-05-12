@@ -16,7 +16,5 @@ test_sockets:
   stage: test
   script:
    - node-gyp build .
-   - ls -R build
    - cd build; make; cd ..
-   - ls -R build
    - npm test
