@@ -7,7 +7,6 @@ cache:
 stages:
   - test
 
-
 before_script:
   - npm install -g node-gyp
   - npm install
@@ -16,5 +15,5 @@ before_script:
 test_sockets:
   stage: test
   script:
-   - node-gyp rebuild .
+   - node-gyp build .
    - npm test
