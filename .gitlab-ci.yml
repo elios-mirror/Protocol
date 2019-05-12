@@ -10,6 +10,7 @@ stages:
 
 before_script:
   - npm install -g node-gyp
+  - node-gyp configure
 
 test_sockets:
   stage: test
