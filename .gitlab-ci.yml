@@ -15,5 +15,5 @@ test_sockets:
   stage: test
   script:
    - npm install
-   - npm build .
+   - node-gyp build .
    - npm test
