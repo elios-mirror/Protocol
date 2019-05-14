@@ -30,8 +30,13 @@ Communication::~Communication()
 void Communication::quit()
 {
   _close = true;
-  if (_server_socket_fd != -1)
+  if (_server_socket_fd != -1) {
+    close(_server_socket_fd);
     unlink(_socket_path.c_str());
+  }
+  if (_client_socket_fd != -1) {
+    close(_client_socket_fd);    
+  }
 }
 
 void Communication::init_server_socket()
