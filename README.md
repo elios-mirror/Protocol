@@ -1,12 +1,14 @@
 # Elios-Protocol
 
-[![pipeline status](https://gitlab.elios-mirror.com/elios/elios-protocol/badges/master/pipeline.svg)](https://gitlab.elios-mirror.com/elios/elios-protocol/commits/master)
-[![coverage report](https://gitlab.elios-mirror.com/elios/elios-protocol/badges/master/coverage.svg)](https://gitlab.elios-mirror.com/elios/elios-protocol/commits/master)
+[![pipeline status](https://gitlab.elios-mirror.com/elios/elios-protocol/badges/<branch>/pipeline.svg)](https://gitlab.elios-mirror.com/elios/elios-protocol/commits/<branch>)
+[![coverage report](https://gitlab.elios-mirror.com/elios/elios-protocol/badges/<branch>/coverage.svg)](https://gitlab.elios-mirror.com/elios/elios-protocol/commits/<branch>)
+
+Current branch: <branch>
 
 Elios Protocol C++ >> NodeJS Module 
 
 
-## Starting
+## Getting Started
 
 Install dependencies:
 ```bash
