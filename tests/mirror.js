@@ -5,7 +5,6 @@ console.log(sock);
 sock.receive(function (data, commande_type) {
   console.log(data);
   console.log(commande_type);
-  sock.send("Hello");
 });
 
 const it = setInterval((data) => {
@@ -13,7 +12,6 @@ const it = setInterval((data) => {
   console.log(data);
 }, 1000)
 
-setTimeout(() => {
-  // sock.close();
-  clearInterval(it);
-}, 5000)
+setInterval(() => {
+  sock.send('mirror');
+}, 1000)

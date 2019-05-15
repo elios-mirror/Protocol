@@ -1,27 +1,40 @@
-var elios_protocol = require('bindings')('elios_protocol');
+var elios_protocol = require(`bindings`)(`elios_protocol`);
 
-const MESSAGE_TEXT = "123456789";
+const SOCKET_PATH = '/tmp/test';
+const MESSAGE_TEXT = '123456789';
 const MESSAGE_COMMAND = 42;
 
-let connection;
 
-test('initialize elios_protocol', () => {
-  connection = elios_protocol('/tmp/test');
-  expect(connection).not.toBeNull();
+let mirror_connection;
+let sdk_connection;
+
+test(`initialize mirror_connection elios_protocol`, () => {
+  mirror_connection = elios_protocol(`${SOCKET_PATH}`);
+  expect(sdk_connection).not.toBeNull();
 });
 
-test('socket_path must be /tmp/test', () => {
-  expect(connection.socket_path).toBe("/tmp/test");
+test(`initialize sdk_connection elios_protocol`, () => {
+  sdk_connection = elios_protocol(`${SOCKET_PATH}`, true);
+  expect(sdk_connection).not.toBeNull();
 });
 
-test(`receive message must be ${MESSAGE_TEXT}`, () => {
+test(`mirror_connection socket_path must be ${SOCKET_PATH}`, () => {
+  expect(mirror_connection.socket_path).toBe(`${SOCKET_PATH}`);
+});
+
+test(`sdk_connection socket_path must be ${SOCKET_PATH}`, () => {
+  expect(mirror_connection.socket_path).toBe(`${SOCKET_PATH}`);
+});
+
+test(`mirror_connection must receive message from SDK ${MESSAGE_TEXT}`, () => {
   return new Promise((resolve) => {
-    connection.receive((message, command_type) => {
+    mirror_connection.receive((message, command_type) => {
       resolve({ message, command_type });
     });
     setTimeout(() => {
-      connection.send(MESSAGE_TEXT, MESSAGE_COMMAND);
-      connection.close();
+      sdk_connection.send(MESSAGE_TEXT, MESSAGE_COMMAND);
+      sdk_connection.close();
+      mirror_connection.close();
     }, 1000);
   }).then((data) => {
     expect(data.message).toBe(MESSAGE_TEXT);

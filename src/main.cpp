@@ -235,8 +235,9 @@ static napi_value CloseFunction(napi_env env, napi_callback_info info)
 napi_value CreateObject(napi_env env, const napi_callback_info info)
 {
   napi_status status;
+  bool sdk = false;
 
-  size_t argc = 1;
+  size_t argc = 2;
   napi_value args[argc];
   status = napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
   assert(status == napi_ok);
@@ -265,10 +266,19 @@ napi_value CreateObject(napi_env env, const napi_callback_info info)
     napi_throw_error(env, NULL, "Could not extract string");
   }
 
+  if (argc == 2)
+  {
+    status = napi_get_value_bool(env, args[1], &sdk);
+    if (status != napi_ok)
+    {
+      napi_throw_error(env, NULL, "Could not extract sdk ?");
+    }
+  }
+
   // Define addon-level data associated with this instance of the addon.
   AddonData *addon_data = (AddonData *)malloc(sizeof(*addon_data));
   addon_data->work = NULL;
-  addon_data->protocolInstance = new Communication(socket_path);
+  addon_data->protocolInstance = new Communication(socket_path, sdk);
 
   // Define the properties that will be set on exports.
   napi_property_descriptor receive_function = {

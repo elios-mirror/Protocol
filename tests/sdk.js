@@ -1,6 +1,6 @@
 var addon = require('bindings')('elios_protocol');
 
-const sock = addon("/tmp/test");
+const sock = addon("/tmp/test", true);
 console.log(sock);
 sock.receive(function (data, commande_type) {
   console.log(data);
@@ -13,5 +13,5 @@ const it = setInterval((data) => {
 }, 1000)
 
 setInterval(() => {
-  sock.send('toto');
+  sock.send('sdk');
 }, 1000)
