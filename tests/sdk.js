@@ -9,7 +9,6 @@ sock.receive(function (data, commande_type) {
 
 const it = setInterval((data) => {
   console.log('interval');
-  console.log(data);
 }, 1000)
 
 setInterval(() => {
