@@ -29,9 +29,11 @@ static napi_value CloseFunction(napi_env env, napi_callback_info info) {
 napi_value CreateObject(napi_env env, const napi_callback_info info) {
   napi_status status;
   bool sdk = false;
+  size_t len;
 
   size_t argc = 2;
   napi_value args[argc];
+
   status = napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
   assert(status == napi_ok);
 
@@ -43,16 +45,20 @@ napi_value CreateObject(napi_env env, const napi_callback_info info) {
   assert(status == napi_ok);
 
   // Get socket_path
-  size_t len;
 
   // Get the length of the string by passing NULL as the buf
   status = napi_get_value_string_utf8(env, args[0], NULL, 0, &len);
+  assert(status == napi_ok);
   if (status != napi_ok) {
     napi_throw_error(env, NULL, "Could not get string length");
   }
 
   char *socket_path =
       (char *)malloc(sizeof(char) * (len + 1)); // +1 for null termination
+  if (socket_path == NULL) {
+    perror("malloc CreateObject");
+    exit(-1);
+  }
   status = napi_get_value_string_utf8(env, args[0], socket_path, len + 1, &len);
   if (status != napi_ok) {
     napi_throw_error(env, NULL, "Could not extract string");
@@ -72,11 +78,15 @@ napi_value CreateObject(napi_env env, const napi_callback_info info) {
       (ReceiveData *)malloc(sizeof(*addon_data_receive));
   SendData *addon_data_send = (SendData *)malloc(sizeof(*addon_data_send));
 
+  if (addon_data_receive == NULL || addon_data_send == NULL) {
+    perror("malloc CreateObject addon_data");
+    exit(-1);
+  }
+
   addon_data_receive->work = NULL;
   addon_data_send->work = NULL;
   addon_data_receive->tsfn = NULL;
   addon_data_send->tsfn = NULL;
-
 
   addon_data_receive->protocolInstance = protocolInstance;
   addon_data_send->protocolInstance = protocolInstance;

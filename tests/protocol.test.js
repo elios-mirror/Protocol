@@ -4,17 +4,16 @@ const SOCKET_PATH = '/tmp/test';
 const MESSAGE_TEXT = '123456789';
 const MESSAGE_COMMAND = 42;
 
+let mirror_connection = elios_protocol(`${SOCKET_PATH}`);
+let sdk_connection = elios_protocol(`${SOCKET_PATH}`, true);
 
-let mirror_connection;
-let sdk_connection;
+sdk_connection.receive(() => {console.log("tesr") });
 
 test(`initialize mirror_connection elios_protocol`, () => {
-  mirror_connection = elios_protocol(`${SOCKET_PATH}`);
   expect(sdk_connection).not.toBeNull();
 });
 
 test(`initialize sdk_connection elios_protocol`, () => {
-  sdk_connection = elios_protocol(`${SOCKET_PATH}`, true);
   expect(sdk_connection).not.toBeNull();
 });
 
@@ -28,16 +27,32 @@ test(`sdk_connection socket_path must be ${SOCKET_PATH}`, () => {
 
 test(`mirror_connection must receive message from SDK ${MESSAGE_TEXT}`, () => {
   return new Promise((resolve) => {
-    mirror_connection.receive((message, command_type) => {
-      resolve({ message, command_type });
+    console.log("init");
+    mirror_connection.receive((message, command_type, reply) => {
+      console.log(message)
+      console.log("reply == " + reply);
+      reply(message + "-reply");
+      // resolve({message, command_type});
+
     });
+    // mirror_connection.send("cc", 0, () => {
+
+    // });
+    // sdk_connection.close();
+    // mirror_connection.close();
+    // resolve({message: MESSAGE_TEXT + "-reply"})
     setTimeout(() => {
-      sdk_connection.send(MESSAGE_TEXT, MESSAGE_COMMAND);
-      sdk_connection.close();
-      mirror_connection.close();
+      console.log("timeout")
+      sdk_connection.send(MESSAGE_TEXT, MESSAGE_COMMAND, (message) => {
+        console.log("replyed");
+        console.log("=========");
+        sdk_connection.close();
+        mirror_connection.close();
+        resolve({ message });
+      });
     }, 1000);
+
   }).then((data) => {
-    expect(data.message).toBe(MESSAGE_TEXT);
-    expect(data.command_type).toBe(MESSAGE_COMMAND);
+    expect(data.message).toBe(MESSAGE_TEXT + "-reply");
   });
 });

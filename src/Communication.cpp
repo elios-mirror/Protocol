@@ -13,6 +13,7 @@ Communication::Communication(const std::string &socket_path, bool sdk)
 
   mkfifo(_client_socket_path.c_str(), 0666);
   mkfifo(_server_socket_path.c_str(), 0666);
+  std::cout << "INITTTTKJTOIHJTUIHIH" << std::endl;
 
   _client_socket_fd = open(_client_socket_path.c_str(), O_RDWR);
   _server_socket_fd = open(_server_socket_path.c_str(), O_RDWR);
@@ -69,7 +70,7 @@ std::future<std::string> Communication::send(const std::string &message,
   queue_element_t queue_element;
   int id = rand() % 2000000;
 
-  // std::cout << "Request ID:" << id << std::endl;
+  std::cout << "Request ID:" << id << std::endl;
 
   queue_element.header.command_type = command_type;
   queue_element.header.payload_size = message.size();
@@ -100,7 +101,13 @@ void Communication::receive(
       exit(-1);
     }
 
-    buffer = (char *)malloc(sizeof(char) * header.payload_size + 1);
+    std::cout << "Header size => " << header.payload_size << std::endl;
+
+    if ((buffer = (char *)malloc(sizeof(char) * header.payload_size + 1)) ==
+        NULL) {
+      perror("malloc receive");
+      exit(-1);
+    }
     memset(buffer, 0, header.payload_size + 1);
 
     while (readed < header.payload_size) {
@@ -114,6 +121,8 @@ void Communication::receive(
       readed += rc;
     }
 
+    std::cout << "Reply ID:" << header.reply_id << std::endl;
+
     if (header.reply_id != -1) {
       if (_reply_queue.find(header.reply_id) != _reply_queue.end()) {
         _reply_queue.at(header.reply_id).set_value(buffer);
@@ -122,6 +131,7 @@ void Communication::receive(
     } else {
       std::function<void(std::string &, int)> replyFunction =
           [&](std::string &message, int commande_type) {
+            std::cout << "Callded" << header.request_id << std::endl;
             send(message, commande_type, header.request_id);
           };
       callback(header, buffer, replyFunction);

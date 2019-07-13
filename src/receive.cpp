@@ -1,6 +1,6 @@
 #include "receive.hpp"
 
-static napi_value Test(napi_env env, const napi_callback_info info) {
+static napi_value ReplyFunction(napi_env env, const napi_callback_info info) {
   napi_status status;
   int command_type = 0;
   size_t argc = 2;
@@ -24,6 +24,10 @@ static napi_value Test(napi_env env, const napi_callback_info info) {
 
   char *message =
       (char *)malloc(sizeof(char) * (len + 1)); // +1 for null termination
+  if (message == NULL) {
+    perror("malloc ReplyFunction");
+    exit(-1);
+  }
   status = napi_get_value_string_utf8(env, args[0], message, len + 1, &len);
   if (status != napi_ok) {
     napi_throw_error(env, NULL, "Could not extract string");
@@ -61,7 +65,7 @@ static void CallJsReceive(napi_env env, napi_value js_cb, void *context,
     napi_create_string_utf8(env, payload->message.c_str(),
                             payload->header.payload_size, &callback_data[0]);
     napi_create_int32(env, payload->header.command_type, &callback_data[1]);
-    napi_create_function(env, "", NAPI_AUTO_LENGTH, Test, (void *)payload,
+    napi_create_function(env, "", NAPI_AUTO_LENGTH, ReplyFunction, (void *)payload,
                          &callback_data[2]);
 
     // Retrieve the JavaScript `undefined` value so we can use it as the `this`

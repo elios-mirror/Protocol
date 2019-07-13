@@ -1,6 +1,6 @@
 {
   "name": "elios-protocol",
-  "version": "1.0.0-snapshot-1.0",
+  "version": "1.0.0-snapshot-2.0",
   "description": "Node.js & C++ Elios Protocol",
   "main": "index.js",
   "gypfile": true,
@@ -9,7 +9,7 @@
     "node-addon-api": "^1.6.3"
   },
   "scripts": {
-    "test": "jest --coverage",
+    "test": "jest --coverage --watch",
     "prepublish": "npm build ."
   },
   "devDependencies": {
