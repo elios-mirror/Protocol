@@ -1,30 +1,166 @@
 #include "Communication.hpp"
 
-Communication::Communication(const std::string &socket_path, bool sdk)
-    : _socket_path{socket_path}, _client_socket_path{socket_path},
-      _server_socket_path{socket_path} {
+Communication::Communication(const std::string &socket_path,
+                             const std::string &sender_id, bool sdk)
+    : _socket_path{socket_path}, _sender_id{sender_id} {
+
   if (sdk) {
-    _client_socket_path += "_sdk";
-    _server_socket_path += "_mirror";
-  } else {
-    _client_socket_path += "_mirror";
-    _server_socket_path += "_sdk";
+    _send_worker_thread = std::thread(&Communication::send_worker, this);
   }
-
-  mkfifo(_client_socket_path.c_str(), 0666);
-  mkfifo(_server_socket_path.c_str(), 0666);
-
-  _client_socket_fd = open(_client_socket_path.c_str(), O_RDWR);
-  _server_socket_fd = open(_server_socket_path.c_str(), O_RDWR);
-  srand(time(NULL));
-  std::thread(&Communication::send_worker, this).detach();
 }
 
-Communication::~Communication() { quit(); }
+void Communication::initServer() {
+  struct sockaddr_un addr;
+  int cl;
+
+  if ((_server_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+    perror("socket error");
+    exit(-1);
+  }
+
+  memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  if (*_socket_path.c_str() == '\0') {
+    *addr.sun_path = '\0';
+    strncpy(addr.sun_path + 1, _socket_path.c_str() + 1,
+            sizeof(addr.sun_path) - 2);
+  } else {
+    strncpy(addr.sun_path, _socket_path.c_str(), sizeof(addr.sun_path) - 1);
+    unlink(_socket_path.c_str());
+  }
+
+  if (bind(_server_socket_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+    perror("bind error");
+    exit(-1);
+  }
+
+  if (listen(_server_socket_fd, 5) == -1) {
+    perror("listen error");
+    exit(-1);
+  }
+
+  while (_quit != true) {
+    if ((cl = accept(_server_socket_fd, NULL, NULL)) == -1) {
+      continue;
+    }
+
+    std::thread thread(&Communication::receiveThread, this, cl);
+    thread.detach();
+  }
+}
+
+void Communication::close_connection(const char sender_id[36]) {
+  if (_callback) {
+    protocol_t header;
+    header.command_type = 3;
+    header.payload_size = 0;
+    header.reply_id = -1;
+    header.request_id = -1;
+    std::strncpy(header.sender_id, sender_id, 36);
+    _callback(header, "", nullptr);
+  }
+}
+
+void Communication::receiveThread(int fd) {
+  int rc;
+  size_t readed;
+  char *buffer;
+  protocol_t header;
+  char sender_id[36];
+
+  std::memset(sender_id, 0, 36);
+
+  while (!_quit) {
+    readed = 0;
+    rc = 0;
+
+    if ((rc = read(fd, &header, sizeof(protocol_t))) == -1) {
+      perror("read2");
+      exit(-1);
+    }
+    if (rc == 0) {
+      // std::cout << "Close communication with " << fd << std::endl;
+      close_connection(sender_id);
+      return;
+    }
+    rc = 0;
+
+    std::strncpy(sender_id, header.sender_id, 36);
+
+    buffer = (char *)malloc(sizeof(char) * header.payload_size + 1);
+    memset(buffer, 0, header.payload_size + 1);
+
+    while (readed < header.payload_size) {
+      if ((rc = read(fd, buffer + readed, header.payload_size - readed)) ==
+          -1) {
+        perror("read");
+        exit(-1);
+      }
+
+      if (rc == 0) {
+        // std::cout << "Close communication with " << fd << std::endl;
+        close_connection(sender_id);
+        return;
+      }
+
+      readed += rc;
+    }
+
+    if (header.reply_id != -1) {
+      if (_reply_queue.find(header.reply_id) != _reply_queue.end()) {
+        _reply_queue.at(header.reply_id).set_value(buffer);
+        _reply_queue.erase(header.reply_id);
+      }
+    } else {
+      std::function<void(std::string &, int)> replyFunction =
+          [&](std::string &message, int commande_type) {
+            send(message, commande_type, header.request_id);
+          };
+      _callback(header, buffer, replyFunction);
+    }
+
+    free(buffer);
+  }
+}
 
 void Communication::quit() {
-  _close = true;
+  _quit = true;
   _send_conditional_variable.notify_all();
+
+  if (_send_worker_thread.joinable()) {
+    _send_worker_thread.join();
+  }
+  if (_server_socket_fd != -1) {
+    close(_server_socket_fd);
+  }
+  if (_client_socket_fd != -1) {
+    close(_client_socket_fd);
+  }
+}
+
+void Communication::initClient() {
+  struct sockaddr_un addr;
+
+  if ((_client_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+    perror("socket error");
+    exit(-1);
+  }
+
+  memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  if (*_socket_path.c_str() == '\0') {
+    *addr.sun_path = '\0';
+    strncpy(addr.sun_path + 1, _socket_path.c_str() + 1,
+            sizeof(addr.sun_path) - 2);
+  } else {
+    strncpy(addr.sun_path, _socket_path.c_str(), sizeof(addr.sun_path) - 1);
+  }
+
+  if (connect(_client_socket_fd, (struct sockaddr *)&addr, sizeof(addr)) ==
+      -1) {
+    perror("connect error");
+    exit(-1);
+  }
 }
 
 void Communication::send_worker() {
@@ -33,7 +169,7 @@ void Communication::send_worker() {
   std::mutex mutex;
   std::unique_lock<std::mutex> lk(mutex);
 
-  while (!_close) {
+  while (!_quit) {
     rc = 0;
     sended = 0;
     _send_conditional_variable.wait(lk, [&] { return !_send_queue.empty(); });
@@ -44,6 +180,8 @@ void Communication::send_worker() {
     protocol_t header = queue_element.header;
 
     const char *buffer = message.c_str();
+
+    // std::cout << "Size = " << header.payload_size << std::endl;
 
     if (write(_client_socket_fd, &header, sizeof(protocol_t)) <= 0) {
       perror("write header");
@@ -66,6 +204,12 @@ void Communication::send_worker() {
 
 std::future<std::string> Communication::send(const std::string &message,
                                              int command_type, int reply_id) {
+  if (_quit) {
+    return std::promise<std::string>().get_future();
+  }
+
+  if (_client_socket_fd == -1)
+    initClient();
   queue_element_t queue_element;
   int id = rand() % 2000000;
 
@@ -74,6 +218,9 @@ std::future<std::string> Communication::send(const std::string &message,
   queue_element.header.command_type = command_type;
   queue_element.header.payload_size = message.size();
   queue_element.header.request_id = id;
+  std::memset(queue_element.header.sender_id, 0, 36);
+  std::strncpy(queue_element.header.sender_id, _sender_id.c_str(),
+               _sender_id.length() >= 35 ? 35 : _sender_id.length());
   queue_element.header.reply_id = reply_id;
   queue_element.message = message;
   _send_queue.emplace(queue_element);
@@ -83,50 +230,11 @@ std::future<std::string> Communication::send(const std::string &message,
 }
 
 void Communication::receive(
-    const std::function<void(const protocol_t &, const std::string &,
-                             std::function<void(std::string &, int)>)>
-        &callback) {
-  int rc;
-  size_t readed;
-  char *buffer;
-  protocol_t header;
-
-  while (!_close) {
-    readed = 0;
-    rc = 0;
-
-    if (read(_server_socket_fd, &header, sizeof(protocol_t)) == -1) {
-      perror("read");
-      exit(-1);
-    }
-
-    buffer = (char *)malloc(sizeof(char) * header.payload_size + 1);
-    memset(buffer, 0, header.payload_size + 1);
-
-    while (readed < header.payload_size) {
-      rc = read(_server_socket_fd, buffer + readed,
-                header.payload_size - readed);
-
-      if (rc <= 0) {
-        perror("read");
-        exit(-1);
-      }
-      readed += rc;
-    }
-
-    if (header.reply_id != -1) {
-      if (_reply_queue.find(header.reply_id) != _reply_queue.end()) {
-        _reply_queue.at(header.reply_id).set_value(buffer);
-        _reply_queue.erase(header.reply_id);
-      }
-    } else {
-      std::function<void(std::string &, int)> replyFunction =
-          [&](std::string &message, int commande_type) {
-            send(message, commande_type, header.request_id);
-          };
-      callback(header, buffer, replyFunction);
-    }
-
-    free(buffer);
-  }
+    const std::function<
+        void(const protocol_t &header, const std::string &message,
+             std::function<void(std::string &, int)>)> &callback) {
+  _callback = callback;
+  initServer();
 }
+
+bool Communication::canSend() { return !_quit; }
