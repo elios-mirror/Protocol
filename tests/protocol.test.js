@@ -1,4 +1,4 @@
-var elios_protocol = require(`bindings`)(`elios_protocol`);
+const { createConnection } = require(`bindings`)(`elios_protocol`);
 
 const SOCKET_PATH = '/tmp/test';
 const MESSAGE_TEXT = '123456789';
@@ -9,12 +9,12 @@ let mirror_connection;
 let sdk_connection;
 
 test(`initialize mirror_connection elios_protocol`, () => {
-  mirror_connection = elios_protocol(`${SOCKET_PATH}`);
+  mirror_connection = createConnection(`${SOCKET_PATH}`);
   expect(sdk_connection).not.toBeNull();
 });
 
 test(`initialize sdk_connection elios_protocol`, () => {
-  sdk_connection = elios_protocol(`${SOCKET_PATH}`, true);
+  sdk_connection = createConnection(`${SOCKET_PATH}`, true);
   expect(sdk_connection).not.toBeNull();
 });
 
@@ -28,6 +28,7 @@ test(`sdk_connection socket_path must be ${SOCKET_PATH}`, () => {
 
 test(`mirror_connection must receive message from SDK ${MESSAGE_TEXT}`, () => {
   return new Promise((resolve) => {
+
     mirror_connection.receive((message, command_type) => {
       resolve({ message, command_type });
     });

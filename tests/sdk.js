@@ -1,11 +1,11 @@
-var addon = require('bindings')('elios_protocol');
+var {createConnection} = require('bindings')('elios_protocol');
 
-const sock = addon("/tmp/test", true);
-console.log(sock);
-sock.receive(function (data, commande_type, reply) {
-  console.log(data);
-  console.log(commande_type);
-});
+const connection = createConnection("/tmp/elios_mirror", 'calendar', true);
+console.log(connection);
+// connection.receive(function (data, command_type, reply) {
+//   console.log(data);
+//   console.log(command_type);
+// });
 
 const it = setInterval((data) => {
   // console.log('interval');
@@ -13,7 +13,7 @@ const it = setInterval((data) => {
 
 setInterval(() => {
   // console.log("cc");
-  sock.send('Hello Form SDK', 42, (data) => {
+  connection.send('Hello Form SDK', 42, (data) => {
     console.log("Message replyed:", data);
   });
 }, 2000)
