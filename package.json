@@ -1,15 +1,16 @@
 {
   "name": "elios-protocol",
-  "version": "0.0.6",
+  "version": "1.0.0-beta-9",
   "description": "Node.js & C++ Elios Protocol",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "gypfile": true,
   "dependencies": {
-    "bindings": "~1.2.1",
-    "node-addon-api": "^1.0.0"
+    "bindings": "~1.5.0",
+    "node-addon-api": "^1.7.1"
   },
   "scripts": {
-    "test": "jest --coverage",
+    "test": "jest --coverage --runInBand",
     "prepublish": "npm build ."
   },
   "devDependencies": {

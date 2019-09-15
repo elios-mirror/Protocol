@@ -1,19 +1,18 @@
-var addon = require('bindings')('elios_protocol');
+var { createConnection } = require('bindings')('elios_protocol');
 
-const sock = addon("/tmp/test");
-console.log(sock);
-sock.receive(function (data, commande_type) {
+const connection = createConnection("/tmp/elios_mirror", 'test');
+
+connection.receive(function (data, sender_id, commande_type, reply) {
   console.log(data);
+  console.log('sender', sender_id);
   console.log(commande_type);
-  sock.send("Hello");
+  // reply(data + ' Mirror');
 });
 
 const it = setInterval((data) => {
-  console.log('interval');
-  console.log(data);
+  // console.log('interval');
 }, 1000)
 
-setTimeout(() => {
-  // sock.close();
-  clearInterval(it);
-}, 5000)
+// setInterval(() => {
+//   connection.send('mirror');
+// }, 1000)
