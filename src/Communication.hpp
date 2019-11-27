@@ -30,6 +30,7 @@ typedef struct protocol_s {
 typedef struct queue_element_s {
   protocol_t    header;
   std::string   message;
+  int           fd;
 } queue_element_t;
 
 typedef struct connection_s {
@@ -53,7 +54,7 @@ public:
 
   void initClient();
 
-  std::future<std::string> send(const std::string &, int, int reply_id = -1);
+  std::future<std::string> send(const std::string &, int, int reply_id = -1, int reply_fd = -1);
   void
   receive(const std::function<void(const protocol_t &, const std::string &,
                                    std::function<void(std::string &, int)>)> &);
@@ -65,6 +66,7 @@ private:
   void close_connection(const char[36]);
   int _client_socket_fd = -1;
   int _server_socket_fd = -1;
+  bool _sdk;
   bool _quit = false;
 
   std::string _socket_path;

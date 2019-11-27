@@ -7,6 +7,29 @@
 std::thread nativeThread;
 Napi::ThreadSafeFunction tsfn;
 
+Napi::Value Reply(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+
+  if (info.Length() < 2) {
+    Napi::TypeError::New(env, "Expected two arguments")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  } else if (!info[0].IsString()) {
+    Napi::TypeError::New(env, "Expected first arg to be string")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  } else if (!info[1].IsNumber()) {
+    Napi::TypeError::New(env, "Expected second arg to be number")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+
+  Payload *payload = static_cast<Payload *>(info.Data());
+  std::string replyMessage(info[0].ToString());
+  payload->replyFunction(replyMessage, info[1].ToNumber());
+  return Napi::Boolean::New(env, true);
+}
+
 Napi::Value Receive(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
 
@@ -37,11 +60,13 @@ Napi::Value Receive(const Napi::CallbackInfo &info) {
   nativeThread = std::thread([=] {
     auto callback = [](Napi::Env env, Napi::Function jsCallback,
                        const Payload *payload) {
+
       // Transform native data into JS data, passing it to the provided
       // `jsCallback` -- the TSFN's JavaScript function.
       jsCallback.Call({Napi::String::New(env, payload->message),
                        Napi::String::New(env, payload->header.sender_id),
-                       Napi::Number::New(env, payload->header.command_type)});
+                       Napi::Number::New(env, payload->header.command_type),
+                       Napi::Function::New(env, Reply, Napi::String::New(env, "reply"), (void*)payload)});
 
       // We're finished with the data.
       delete payload;
@@ -56,7 +81,7 @@ Napi::Value Receive(const Napi::CallbackInfo &info) {
           const Payload *payload = new Payload{header, message, replyFunction};
           napi_status status = tsfn.BlockingCall(payload, callback);
           if (status != napi_ok) {
-            // Handle error
+            perror("Error tsfn");
           }
         };
 
@@ -126,7 +151,7 @@ Napi::Object CreateConnection(const Napi::CallbackInfo &info) {
   obj.Set(Napi::String::New(env, "socket_path"), info[0].ToString());
   obj.Set(Napi::String::New(env, "sender_id"), info[1].ToString());
   obj.Set(Napi::String::New(env, "is_sdk"),
-          info.Length() > 1 ? info[1].ToBoolean() : false);
+          info.Length() > 2 ? info[2].ToBoolean() : false);
   obj.Set(Napi::String::New(env, "receive"),
           Napi::Function::New(env, Receive, Napi::String::New(env, "receive"),
                               static_cast<void *>(protocolInstance)));

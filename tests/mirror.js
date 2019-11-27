@@ -6,7 +6,28 @@ connection.receive(function (data, sender_id, commande_type, reply) {
   console.log(data);
   console.log('sender', sender_id);
   console.log(commande_type);
-  // reply(data + ' Mirror');
+  switch(commande_type) {
+    case 4:
+      console.log('reply');
+      reply(`[
+    {
+        "type": "input",
+        "name": "firstname",
+        "value": "Foo"
+    },
+    {
+        "type": "checkbox",
+        "name": "show_media",
+        "value": true
+    },
+    {
+        "type": "dropdown",
+        "name": "sayhello",
+        "value": 2
+    }
+]`, 5);
+      break;
+  }
 });
 
 const it = setInterval((data) => {

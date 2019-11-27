@@ -2,11 +2,8 @@
 
 Communication::Communication(const std::string &socket_path,
                              const std::string &sender_id, bool sdk)
-    : _socket_path{socket_path}, _sender_id{sender_id} {
-
-  if (sdk) {
-    _send_worker_thread = std::thread(&Communication::send_worker, this);
-  }
+    : _sdk{sdk}, _socket_path{socket_path}, _sender_id{sender_id} {
+  _send_worker_thread = std::thread(&Communication::send_worker, this);
 }
 
 void Communication::initServer() {
@@ -106,18 +103,18 @@ void Communication::receiveThread(int fd) {
       readed += rc;
     }
 
-    if (header.reply_id != -1) {
-      if (_reply_queue.find(header.reply_id) != _reply_queue.end()) {
-        _reply_queue.at(header.reply_id).set_value(buffer);
-        _reply_queue.erase(header.reply_id);
-      }
-    } else {
-      std::function<void(std::string &, int)> replyFunction =
-          [&](std::string &message, int commande_type) {
-            send(message, commande_type, header.request_id);
-          };
-      _callback(header, buffer, replyFunction);
-    }
+    // if (header.reply_id != -1) {
+    //   // if (_reply_queue.find(header.reply_id) != _reply_queue.end()) {
+    //   //   _reply_queue.at(header.reply_id).set_value(buffer);
+    //   //   _reply_queue.erase(header.reply_id);
+    //   // }
+    // } else {
+    std::function<void(std::string &, int)> replyFunction =
+        [&](std::string &message, int commande_type) {
+          send(message, commande_type, header.request_id, fd);
+        };
+    _callback(header, buffer, replyFunction);
+    // }
 
     free(buffer);
   }
@@ -178,18 +175,16 @@ void Communication::send_worker() {
 
     std::string message = queue_element.message;
     protocol_t header = queue_element.header;
+    int fd = queue_element.fd;
 
     const char *buffer = message.c_str();
 
-    // std::cout << "Size = " << header.payload_size << std::endl;
-
-    if (write(_client_socket_fd, &header, sizeof(protocol_t)) <= 0) {
+    if (write(fd, &header, sizeof(protocol_t)) <= 0) {
       perror("write header");
       exit(-1);
     }
     while (sended < header.payload_size) {
-      rc = write(_client_socket_fd, buffer + sended,
-                 header.payload_size - sended);
+      rc = write(fd, buffer + sended, header.payload_size - sended);
       if (rc <= 0) {
         perror("write message");
         exit(-1);
@@ -203,21 +198,20 @@ void Communication::send_worker() {
 }
 
 std::future<std::string> Communication::send(const std::string &message,
-                                             int command_type, int reply_id) {
+                                             int command_type, int reply_id,
+                                             int reply_fd) {
   if (_quit) {
     return std::promise<std::string>().get_future();
   }
-
   if (_client_socket_fd == -1)
     initClient();
   queue_element_t queue_element;
   int id = rand() % 2000000;
 
-  // std::cout << "Request ID:" << id << std::endl;
-
   queue_element.header.command_type = command_type;
   queue_element.header.payload_size = message.size();
   queue_element.header.request_id = id;
+  queue_element.fd = reply_fd != -1 ? reply_fd : _client_socket_fd;
   std::memset(queue_element.header.sender_id, 0, 36);
   std::strncpy(queue_element.header.sender_id, _sender_id.c_str(),
                _sender_id.length() >= 35 ? 35 : _sender_id.length());
@@ -234,7 +228,17 @@ void Communication::receive(
         void(const protocol_t &header, const std::string &message,
              std::function<void(std::string &, int)>)> &callback) {
   _callback = callback;
-  initServer();
+  if (_sdk == false) {
+    initServer();
+  } else {
+    if (_client_socket_fd == -1)
+      initClient();
+    _server_socket_fd = _client_socket_fd;
+    std::thread thread(&Communication::receiveThread, this, _client_socket_fd);
+    thread.detach();
+    while (_quit != true) {
+    }
+  }
 }
 
 bool Communication::canSend() { return !_quit; }
