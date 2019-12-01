@@ -27,6 +27,7 @@ Napi::Value Reply(const Napi::CallbackInfo &info) {
   Payload *payload = static_cast<Payload *>(info.Data());
   std::string replyMessage(info[0].ToString());
   payload->replyFunction(replyMessage, info[1].ToNumber());
+  delete payload;
   return Napi::Boolean::New(env, true);
 }
 
@@ -69,7 +70,6 @@ Napi::Value Receive(const Napi::CallbackInfo &info) {
                        Napi::Function::New(env, Reply, Napi::String::New(env, "reply"), (void*)payload)});
 
       // We're finished with the data.
-      delete payload;
     };
 
     std::function<void(const protocol_t &, const std::string &,

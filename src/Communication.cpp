@@ -75,6 +75,7 @@ void Communication::receiveThread(int fd) {
       perror("read2");
       exit(-1);
     }
+
     if (rc == 0) {
       // std::cout << "Close communication with " << fd << std::endl;
       close_connection(sender_id);
@@ -122,17 +123,16 @@ void Communication::receiveThread(int fd) {
 
 void Communication::quit() {
   _quit = true;
-  _send_conditional_variable.notify_all();
-
-  if (_send_worker_thread.joinable()) {
-    _send_worker_thread.join();
-  }
   if (_server_socket_fd != -1) {
     close(_server_socket_fd);
   }
   if (_client_socket_fd != -1) {
     close(_client_socket_fd);
   }
+  _send_conditional_variable.notify_all();
+  // if (_send_worker_thread.joinable()) {
+  //   _send_worker_thread.join();
+  // }
 }
 
 void Communication::initClient() {
@@ -233,7 +233,6 @@ void Communication::receive(
   } else {
     if (_client_socket_fd == -1)
       initClient();
-    _server_socket_fd = _client_socket_fd;
     std::thread thread(&Communication::receiveThread, this, _client_socket_fd);
     thread.detach();
     while (_quit != true) {

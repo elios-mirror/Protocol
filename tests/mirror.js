@@ -30,9 +30,15 @@ connection.receive(function (data, sender_id, commande_type, reply) {
   }
 });
 
-const it = setInterval((data) => {
-  // console.log('interval');
-}, 1000)
+// const it = setInterval((data) => {
+//   // console.log('interval');
+// }, 1000)
+
+
+setTimeout(() => {
+  console.log('Close');
+  connection.close();
+}, 7000);
 
 // setInterval(() => {
 //   connection.send('mirror');

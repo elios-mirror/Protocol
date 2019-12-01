@@ -8,13 +8,16 @@ connection.receive(function (data, sender_id, commande_type, reply) {
   console.log(commande_type);
 });
 
-const it = setInterval((data) => {
-  // console.log('interval');
-}, 1000)
-
-setInterval(() => {
+const it = setInterval(() => {
   // console.log("cc");
   connection.send('Hello Form SDK', 4, (data) => {
     console.log("Message replyed:", data);
   });
 }, 2000)
+
+
+setTimeout(() => {
+  clearInterval(it);
+  console.log('Close');
+  connection.close();
+}, 5000);

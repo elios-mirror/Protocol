@@ -18,6 +18,7 @@
 #include <vector>
 
 #include <stdexcept>
+#include <fcntl.h>
 
 typedef struct protocol_s {
   std::size_t   payload_size;

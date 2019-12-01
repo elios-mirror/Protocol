@@ -6,12 +6,12 @@ const SENDER_ID = 'unit-test';
 const MESSAGE_COMMAND = 42;
 
 
-let mirror_connection;
-let sdk_connection;
+let mirror_connection = null;
+let sdk_connection = null;
 
 test(`initialize mirror_connection elios_protocol`, () => {
   mirror_connection = createConnection(`${SOCKET_PATH}`, 'mirror');
-  expect(sdk_connection).not.toBeNull();
+  expect(mirror_connection).not.toBeNull();
 });
 
 test(`initialize sdk_connection elios_protocol`, () => {
@@ -24,7 +24,7 @@ test(`mirror_connection socket_path must be ${SOCKET_PATH}`, () => {
 });
 
 test(`sdk_connection socket_path must be ${SOCKET_PATH}`, () => {
-  expect(mirror_connection.socket_path).toBe(`${SOCKET_PATH}`);
+  expect(sdk_connection.socket_path).toBe(`${SOCKET_PATH}`);
 });
 
 test(`mirror_connection must receive message from SDK ${MESSAGE_TEXT}`, () => {
@@ -33,10 +33,13 @@ test(`mirror_connection must receive message from SDK ${MESSAGE_TEXT}`, () => {
     mirror_connection.receive((message, sender_id, command_type) => {
       resolve({ message, sender_id, command_type });
     });
+
     setTimeout(() => {
       sdk_connection.send(MESSAGE_TEXT, MESSAGE_COMMAND);
-      sdk_connection.close();
-      mirror_connection.close();
+      setTimeout(() => {
+        mirror_connection.close();
+        sdk_connection.close();
+      }, 1000);
     }, 1000);
   }).then((data) => {
     expect(data.message).toBe(MESSAGE_TEXT);
